@@ -1,0 +1,6 @@
+name: Centre
+version: '${project.version}'
+main: com.meturum.centre.Centre
+api-version: 1.19
+softdepend: [ NBTAPI ]
+authors: [ IJyrs ]
