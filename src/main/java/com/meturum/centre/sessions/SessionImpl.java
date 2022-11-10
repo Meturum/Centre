@@ -1,14 +1,17 @@
 package com.meturum.centre.sessions;
 
+import com.meturum.centra.mongo.Mongo;
 import com.meturum.centra.sessions.GameProfile;
 import com.meturum.centra.sessions.Session;
 import com.meturum.centra.sessions.events.ProfileSwitchEvent;
 import com.meturum.centra.sessions.ranks.Rank;
+import com.meturum.centre.sessions.profiles.GameProfileImpl;
 import com.meturum.centre.sessions.ranks.RankFactoryImpl;
 import com.meturum.centre.sessions.ranks.RankImpl;
 import com.meturum.centra.conversions.Documentable;
 import com.meturum.centre.util.DynamicTag;
-import com.meturum.centre.util.mongo.Mongo;
+import com.meturum.centre.util.mongo.MongoImpl;
+import com.mongodb.client.model.Filters;
 import org.bson.Document;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -16,6 +19,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -36,6 +40,29 @@ public class SessionImpl extends DynamicTag implements Session {
 
     public SessionImpl(@NotNull Player player, @NotNull Mongo mongo, @NotNull RankFactoryImpl rankFactory, @NotNull Plugin plugin) {
         super(mongo);
+
+        mongo.getCollection(getCollection(), Mongo.MongoClientTypes.GLOBAL_DATABASE)
+                .findAsync(Filters.eq("uuid", player.getUniqueId().toString()), (iterable, exception) -> {
+                    Document document = iterable.first();
+
+                    if (exception != null) return;
+                    if (document == null) return;
+
+                    Documentable.insertDocument(((MongoImpl) mongo).getSystemManager(), document, this);
+
+                    getRank();
+
+                    if(document.containsKey("profiles")) {
+                        List<String> profilesUuids = document.get("profiles", List.class);
+
+                        for (String uuid : profilesUuids) {
+                            addProfile(GameProfileImpl.of(UUID.fromString(uuid), mongo));
+                        }
+                    }
+
+                    if(profiles.length != 0) return;
+                    addProfile(new GameProfileImpl(GameProfileImpl.CommonNicknames.KIWI, mongo));
+                });
 
         this.player = player;
         this.rankFactory = rankFactory;
@@ -63,13 +90,10 @@ public class SessionImpl extends DynamicTag implements Session {
     }
 
     @Override
-    public void setRank(@Nullable Rank rank_wrapper) throws IllegalArgumentException{
-        if(rank_wrapper == null) {
-            rank_wrapper = rankFactory.search();
+    public void setRank(@Nullable Rank newRank) throws IllegalArgumentException {
+        if(newRank == null) {
+            newRank = rankFactory.search();
         }
-
-        if(!(rank_wrapper instanceof RankImpl newRank))
-            throw new IllegalArgumentException("Rank must be an instance of eRank.");
 
         if(this.rank != null) {
             for (String permission : this.rank.getPermissions()) {
@@ -77,10 +101,10 @@ public class SessionImpl extends DynamicTag implements Session {
             }
         }
 
-        this.rank = newRank;
+        this.rank = (RankImpl) newRank;
 
-        getPlayer().setPlayerListName(newRank.getFormattedString(this, RankImpl.FormatType.PLAYER_LIST));
-        newRank.registerToTeam(this);
+        getPlayer().setPlayerListName(rank.getFormattedString(this, RankImpl.FormatType.PLAYER_LIST));
+        rank.registerToTeam(this);
 
         for (String permission : newRank.getPermissions()) {
             getPlayer().addAttachment(plugin, permission, true);
@@ -184,7 +208,12 @@ public class SessionImpl extends DynamicTag implements Session {
         getPlayer().kickPlayer(reason);
     }
 
-    public static SessionImpl of(@NotNull Player player, @NotNull Document document, @NotNull Mongo mongo, @NotNull RankFactoryImpl rankFactory, @NotNull Plugin plugin) {
+    @Override
+    protected String getCollection() {
+        return "users";
+    }
+
+    public static SessionImpl of(@NotNull Player player, @NotNull Document document, @NotNull MongoImpl mongo, @NotNull RankFactoryImpl rankFactory, @NotNull Plugin plugin) {
         SessionImpl session = new SessionImpl(player, mongo, rankFactory, plugin);
         Documentable.insertDocument(mongo.getSystemManager(), document, session);
 

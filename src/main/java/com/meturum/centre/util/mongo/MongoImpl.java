@@ -1,7 +1,6 @@
 package com.meturum.centre.util.mongo;
 
-import com.meturum.centra.Centra;
-import com.meturum.centra.mongo.IMongo;
+import com.meturum.centra.mongo.Mongo;
 import com.meturum.centre.Centre;
 import com.meturum.centre.util.SystemImpl;
 import com.mongodb.ConnectionString;
@@ -18,11 +17,11 @@ import org.jetbrains.annotations.NotNull;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public final class Mongo extends SystemImpl implements IMongo {
+public final class MongoImpl extends SystemImpl implements Mongo {
 
     private MongoClient client;
 
-    public Mongo(@NotNull Centre centre) {
+    public MongoImpl(@NotNull Centre centre) {
         super(centre);
 
         Logger logger = Logger.getLogger("org.mongodb.driver");
@@ -41,7 +40,7 @@ public final class Mongo extends SystemImpl implements IMongo {
 
     /**
      * @param name The name of the collection.
-     * @param type The type of the collection.
+     * @param type The action of the collection.
      * @return The collection.
      */
     public @NotNull CollectionWrapperImpl getCollection(@NotNull String name, @NotNull MongoClientTypes type) {

@@ -1,16 +1,21 @@
 package com.meturum.centre.sessions.ranks;
 
-import com.meturum.centra.Centra;
-import com.meturum.centra.mongo.IMongo;
+import com.meturum.centra.mongo.Mongo;
+import com.meturum.centra.sessions.Session;
+import com.meturum.centra.sessions.SessionFactory;
 import com.meturum.centra.sessions.ranks.Rank;
 import com.meturum.centra.conversions.Documentable;
 import com.meturum.centra.sessions.ranks.RankFactory;
 import com.meturum.centre.Centre;
+import com.meturum.centre.util.EmojiList;
 import com.meturum.centre.util.SystemImpl;
-import com.meturum.centre.util.mongo.Mongo;
+import com.meturum.centre.util.mongo.MongoImpl;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.model.Filters;
 import org.bson.Document;
+import org.bukkit.ChatColor;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -20,16 +25,18 @@ import java.util.UUID;
 
 public class RankFactoryImpl extends SystemImpl implements RankFactory {
 
-    private final Mongo mongo;
+    private final MongoImpl mongo;
+    private final SessionFactory sessionFactory;
 
     private final List<RankImpl> ranks = new ArrayList<>();
 
-    public RankFactoryImpl(@NotNull Centre centre, @NotNull Mongo mongo) {
+    public RankFactoryImpl(@NotNull Centre centre, @NotNull MongoImpl mongo, @NotNull SessionFactory sessionFactory) {
         super(centre);
 
         this.mongo = mongo;
+        this.sessionFactory = sessionFactory;
 
-        mongo.getCollection("ranks", IMongo.MongoClientTypes.GLOBAL_DATABASE).findAsync(
+        mongo.getCollection("ranks", Mongo.MongoClientTypes.GLOBAL_DATABASE).findAsync(
                 (@Nullable FindIterable<Document> iterable, @Nullable Exception exception) -> {
                     RankFactoryImpl factory = centre.getSystemManager().search(RankFactoryImpl.class);
 
@@ -37,7 +44,7 @@ public class RankFactoryImpl extends SystemImpl implements RankFactory {
                         try {
                             RankImpl rank = Documentable.fromDocument(centre.getSystemManager(), document, RankImpl.class);
                             factory.register(rank);
-                        }catch (Exception ignored) { }
+                        }catch (Exception ignored) { ignored.printStackTrace(); }
                     }
                 }
         );
@@ -56,7 +63,7 @@ public class RankFactoryImpl extends SystemImpl implements RankFactory {
         if(!deep)
             return ranks.stream().filter(rank -> rank.getUniqueId().equals(uuid)).findFirst().orElse(null);
 
-        Document document = mongo.getCollection("ranks", IMongo.MongoClientTypes.GLOBAL_DATABASE).raw().find(Filters.eq("uuid", uuid.toString())).first();
+        Document document = mongo.getCollection("ranks", Mongo.MongoClientTypes.GLOBAL_DATABASE).raw().find(Filters.eq("uuid", uuid.toString())).first();
         return searchDeep(document);
     }
 
@@ -68,7 +75,7 @@ public class RankFactoryImpl extends SystemImpl implements RankFactory {
         if(!deep)
             return ranks.stream().filter(rank -> rank.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
 
-        Document document = mongo.getCollection("ranks", IMongo.MongoClientTypes.GLOBAL_DATABASE).raw().find(Filters.eq("name", name)).first();
+        Document document = mongo.getCollection("ranks", Mongo.MongoClientTypes.GLOBAL_DATABASE).raw().find(Filters.eq("name", name)).first();
 
         return searchDeep(document);
     }
@@ -113,6 +120,24 @@ public class RankFactoryImpl extends SystemImpl implements RankFactory {
 
     public boolean unregister(@NotNull RankImpl rank) {
         return false;
+    }
+
+    @EventHandler
+    public void onAPCE(AsyncPlayerChatEvent event) {
+        Session session = sessionFactory.search(event.getPlayer());
+        if(session == null) return;
+
+        Rank rank = session.getRank();
+        if(rank == null) return;
+
+        if(session.getPlayer().isOp() || session.getSettings().containsKey("chat.convert-colors") && session.getSettings().getBoolean("chat.convert-colors"))
+            event.setMessage(ChatColor.translateAlternateColorCodes('&', event.getMessage()));
+
+        if(session.getPlayer().isOp() || session.getSettings().containsKey("chat.convert-emojis") && session.getSettings().getBoolean("chat.convert-emojis"))
+            event.setMessage(EmojiList.read(event.getMessage()));
+
+        if(rank instanceof RankImpl)
+            event.setFormat(((RankImpl) rank).getFormattedString(session, RankImpl.FormatType.CHAT) + event.getMessage());
     }
 
 }

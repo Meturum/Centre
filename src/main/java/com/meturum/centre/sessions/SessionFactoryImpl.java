@@ -1,6 +1,5 @@
 package com.meturum.centre.sessions;
 
-import com.meturum.centra.Centra;
 import com.meturum.centra.ColorList;
 import com.meturum.centra.sessions.Session;
 import com.meturum.centra.sessions.SessionFactory;
@@ -8,12 +7,11 @@ import com.meturum.centra.system.SystemManager;
 import com.meturum.centre.Centre;
 import com.meturum.centre.sessions.ranks.RankFactoryImpl;
 import com.meturum.centre.util.SystemImpl;
-import com.meturum.centre.util.mongo.Mongo;
+import com.meturum.centre.util.mongo.MongoImpl;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -23,11 +21,11 @@ import java.util.UUID;
 
 public class SessionFactoryImpl extends SystemImpl implements SessionFactory {
 
-    private final Mongo mongo;
+    private final MongoImpl mongo;
 
     private final List<?> sessions = new ArrayList<>();
 
-    public SessionFactoryImpl(@NotNull Centre centre, @NotNull Mongo mongo) {
+    public SessionFactoryImpl(@NotNull Centre centre, @NotNull MongoImpl mongo) {
         super(centre);
 
         this.mongo = mongo;

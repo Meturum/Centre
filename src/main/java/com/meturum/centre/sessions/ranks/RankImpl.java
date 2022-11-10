@@ -1,7 +1,7 @@
 package com.meturum.centre.sessions.ranks;
 
 import com.google.common.base.Preconditions;
-import com.meturum.centra.mongo.IMongo;
+import com.meturum.centra.mongo.Mongo;
 import com.meturum.centra.sessions.Session;
 import com.meturum.centra.sessions.ranks.Rank;
 import com.meturum.centra.system.SystemManager;
@@ -10,7 +10,7 @@ import com.meturum.centra.ColorList;
 import com.meturum.centra.conversions.Documentable;
 import com.meturum.centre.util.DynamicTag;
 import com.meturum.centra.conversions.annotations.DocumentableMethod;
-import com.meturum.centre.util.mongo.Mongo;
+import com.meturum.centre.util.mongo.MongoImpl;
 import com.mongodb.client.model.Filters;
 import org.apache.commons.lang3.StringUtils;
 import org.bson.Document;
@@ -140,10 +140,10 @@ public class RankImpl extends DynamicTag implements Rank {
         return factory.search(value);
     }
 
-    public static RankImpl of(@NotNull Mongo mongo, @NotNull String name) {
+    public static RankImpl of(@NotNull MongoImpl mongo, @NotNull String name) {
         Preconditions.checkNotNull(mongo, "System (Mongo) cannot be null nor inactive.");
 
-        Document document = mongo.getCollection("ranks", IMongo.MongoClientTypes.GLOBAL_DATABASE).raw().find(Filters.eq("name", name.toLowerCase())).first();
+        Document document = mongo.getCollection("ranks", Mongo.MongoClientTypes.GLOBAL_DATABASE).raw().find(Filters.eq("name", name.toLowerCase())).first();
         if(document == null) return null;
 
         RankImpl rank = new RankImpl(mongo);
@@ -152,7 +152,7 @@ public class RankImpl extends DynamicTag implements Rank {
         return rank;
     }
 
-    public static RankImpl of(@NotNull Mongo mongo, @NotNull Document document) throws Exception {
+    public static RankImpl of(@NotNull MongoImpl mongo, @NotNull Document document) throws Exception {
         return Documentable.fromDocument(mongo.getSystemManager(), document, RankImpl.class);
     }
 

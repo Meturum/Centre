@@ -3,8 +3,9 @@ package com.meturum.centre.util;
 import com.google.common.base.Preconditions;
 import com.meturum.centra.conversions.Documentable;
 import com.meturum.centra.conversions.IDynamicTag;
-import com.meturum.centra.mongo.IMongo;
-import com.meturum.centre.util.mongo.Mongo;
+import com.meturum.centra.mongo.CollectionWrapper;
+import com.meturum.centra.mongo.Mongo;
+import com.meturum.centre.util.mongo.MongoImpl;
 import com.meturum.centre.util.mongo.CollectionWrapperImpl;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.result.InsertOneResult;
@@ -36,7 +37,7 @@ public abstract class DynamicTag implements IDynamicTag {
     public boolean save(boolean async, @Nullable SaveLambda lambda, boolean upsert) {
         Preconditions.checkNotNull(mongo, "System (Mongo) cannot be null nor inactive.");
 
-        CollectionWrapperImpl collection = mongo.getCollection(getCollection(), IMongo.MongoClientTypes.GLOBAL_DATABASE);
+        CollectionWrapper collection = mongo.getCollection(getCollection(), Mongo.MongoClientTypes.GLOBAL_DATABASE);
 
         if(async)
             collection.replaceOneAsync(
@@ -45,7 +46,7 @@ public abstract class DynamicTag implements IDynamicTag {
                         if(exception != null || result == null) return;
 
                         if(upsert && result.getModifiedCount() == 0)
-                            mongo.getCollection(getCollection(), Mongo.MongoClientTypes.GLOBAL_DATABASE)
+                            mongo.getCollection(getCollection(), MongoImpl.MongoClientTypes.GLOBAL_DATABASE)
                                     .insertOneAsync(asDocument(), (@Nullable InsertOneResult result1, @Nullable Exception exception1) -> {
                                         if(result1 == null) return;
 

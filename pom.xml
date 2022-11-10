@@ -110,6 +110,7 @@
             <groupId>com.meturum</groupId>
             <artifactId>centra</artifactId>
             <version>0.1.0-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>

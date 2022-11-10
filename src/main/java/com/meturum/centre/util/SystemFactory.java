@@ -11,11 +11,14 @@ public class SystemFactory implements SystemManager {
 
     private final List<SystemImpl> systems = new ArrayList<>();
 
-    public void register(SystemImpl system) throws IllegalArgumentException {
+    public <T extends System> T register(SystemImpl system) throws IllegalArgumentException {
         if(contains(system.getClass()))
-            throw new IllegalArgumentException("Unable to register system, a system of type " + system.getClass().getSimpleName() + " is already registered.");
+            throw new IllegalArgumentException("Unable to register system, a system of action " + system.getClass().getSimpleName() + " is already registered.");
 
         systems.add(system);
+        system.centre.getServer().getPluginManager().registerEvents(system, system.centre);
+
+        return (T) system;
     }
 
     public void registerAll(SystemImpl... systems) throws IllegalArgumentException{
