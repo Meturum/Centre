@@ -92,7 +92,7 @@ public class SessionImpl extends DynamicTag implements Session {
     @Override
     public void setRank(@Nullable Rank newRank) throws IllegalArgumentException {
         if(newRank == null) {
-            newRank = rankFactory.search();
+            newRank = rankFactory.search("player");
         }
 
         if(this.rank != null) {

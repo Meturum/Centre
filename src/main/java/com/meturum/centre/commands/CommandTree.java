@@ -2,10 +2,9 @@ package com.meturum.centre.commands;
 
 import com.google.common.base.Preconditions;
 import com.meturum.centra.ColorList;
-import com.meturum.centre.Centre;
+import com.meturum.centre.commands.exceptions.CommandArgumentException;
 import com.meturum.centre.commands.arguments.CommandArgument;
 import com.meturum.centre.commands.arguments.CommandContext;
-import com.meturum.centre.commands.exceptions.CommandArgumentException;
 import com.meturum.centre.util.EmojiList;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.defaults.BukkitCommand;

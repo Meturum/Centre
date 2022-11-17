@@ -121,14 +121,7 @@ public class CommandArgument<T> {
     /**
      * @return The suggestion lambda for the argument.
      */
-    @Nullable
-    public final SuggestionLambda getSuggestionLambda() {
-        if(suggestionLambda == null) {
-            return switch (getType().getSimpleName()) {
-                default -> null;
-            };
-        }
-
+    public final @Nullable SuggestionLambda getSuggestionLambda() {
         return suggestionLambda;
     }
 

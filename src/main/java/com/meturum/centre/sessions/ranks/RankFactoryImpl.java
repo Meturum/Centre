@@ -98,8 +98,8 @@ public class RankFactoryImpl extends SystemImpl implements RankFactory {
         return search(name, false);
     }
 
-    public @Nullable Rank search() {
-        return null;
+    public @Nullable List<RankImpl> search() {
+        return ranks;
     }
 
     public boolean contains(@NotNull UUID uuid, boolean deep) {

@@ -1,16 +1,18 @@
 package com.meturum.centre.commands;
 
 import com.meturum.centra.ColorList;
-import com.meturum.centra.interfaces.Interface;
-import com.meturum.centra.interfaces.container.Container;
-import com.meturum.centra.interfaces.item.ItemWrapper;
+import com.meturum.centra.inventory.CustomInventory;
+import com.meturum.centra.inventory.InventoryManager;
+import com.meturum.centra.inventory.actions.ActionEventContext;
+import com.meturum.centra.inventory.actions.GeneralAction;
+import com.meturum.centra.inventory.container.Container;
+import com.meturum.centra.inventory.item.ItemBuilder;
+import com.meturum.centra.inventory.item.Position;
 import com.meturum.centre.Centre;
-import com.meturum.centre.interfaces.ContainerImpl;
-import com.meturum.centre.interfaces.InterfaceImpl;
-import com.meturum.centre.interfaces.InterfaceManager;
+import com.meturum.centre.sessions.ranks.RankFactoryImpl;
+import com.meturum.centre.sessions.ranks.RankImpl;
 import com.meturum.centre.util.EmojiList;
 import com.meturum.centre.util.SystemImpl;
-import de.tr7zw.nbtapi.NBTItem;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.CommandMap;
@@ -35,14 +37,40 @@ public final class CommandFactory extends SystemImpl {
 
         registerCommand(new CommandTree("debug")
                 .executes((context) -> {
-                    InterfaceImpl ui = new InterfaceImpl(3, getSystemManager().search(InterfaceManager.class))
-                            .setTitle("Debug Interface")
-                            .setOverlay("");
+                    InventoryManager manager = getSystemManager().search(InventoryManager.class);
+                    RankFactoryImpl rankFactory = getSystemManager().search(RankFactoryImpl.class);
 
-                    Container container = ui.createContainer(0, 0, 3);
-                    container.addItem(new ItemWrapper(Material.APPLE));
+                    final CustomInventory inventory = manager.createInventory(3)
+                            .setMaximized()
+                            .setTitle("Debug UI");
 
-                    ui.view((Player) context.getSender());
+                    final Container container = inventory.createContainer(0, 0, 3, 3)
+                            .setAllowedActions(GeneralAction.PICKUP)
+                            .setItem(new ItemBuilder(Material.DIAMOND)
+                                            .setCustomName(ColorList.RED+"Debug Button")
+                                    , new Position(2, 2))
+                            .interacts((action) -> {
+                                ItemBuilder item = action.getCurrentItem();
+                                if(item == null) return;
+
+                                if(item.getFID().equals("debug")) {
+                                    action.getPlayer().getPlayer().sendMessage(EmojiList.SUCCESS_ICON + " " + ColorList.GRAY + "You clicked on " + item.getCustomName());
+                                    action.getInventory().setTitle("Debug UI - "+item.getCustomName());
+
+                                    action.setResult(ActionEventContext.ActionResult.DENY);
+                                }
+                            }, GeneralAction.PICKUP);
+
+                    inventory.createContainer(4, 0, 6, 2).fill(Material.GOLDEN_APPLE);
+
+                    for (RankImpl rank : rankFactory.search()) {
+                        container.addItem(new ItemBuilder(Material.PLAYER_HEAD)
+                                .setCustomName(rank.getName())
+                                .setFID("debug")
+                        );
+                    }
+
+                    inventory.view((Player) context.getSender());
                 })
         );
     }

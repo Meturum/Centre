@@ -23,7 +23,7 @@ public class SessionFactoryImpl extends SystemImpl implements SessionFactory {
 
     private final MongoImpl mongo;
 
-    private final List<?> sessions = new ArrayList<>();
+    private final List<SessionImpl> sessionsList = new ArrayList<>();
 
     public SessionFactoryImpl(@NotNull Centre centre, @NotNull MongoImpl mongo) {
         super(centre);
@@ -31,20 +31,18 @@ public class SessionFactoryImpl extends SystemImpl implements SessionFactory {
         this.mongo = mongo;
     }
 
-    private final List<Session> sessionsList = new ArrayList<>();
-
-    public @NotNull Session open(@NotNull Player player) {
+    public @NotNull SessionImpl open(@NotNull Player player) {
         if(contains(player))
             return search(player);
 
         SystemManager manager = centre.getSystemManager();
-        Session session = new SessionImpl(player, mongo, manager.search(RankFactoryImpl.class), centre);
+        SessionImpl session = new SessionImpl(player, mongo, manager.search(RankFactoryImpl.class), centre);
         sessionsList.add(session);
         return session;
     }
 
-    public @Nullable Session search(@NotNull UUID uuid) {
-        for (Session session : sessionsList) {
+    public @Nullable SessionImpl search(@NotNull UUID uuid) {
+        for (SessionImpl session : sessionsList) {
             if(session.getPlayer().getUniqueId().equals(uuid))
                 return session;
         }
@@ -52,7 +50,7 @@ public class SessionFactoryImpl extends SystemImpl implements SessionFactory {
         return null;
     }
 
-    public @Nullable Session search(@NotNull Player player) {
+    public @Nullable SessionImpl search(@NotNull Player player) {
         return search(player.getUniqueId());
     }
 

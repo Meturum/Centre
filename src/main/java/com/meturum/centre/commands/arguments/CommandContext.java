@@ -1,13 +1,9 @@
 package com.meturum.centre.commands.arguments;
 
-import com.google.common.base.Preconditions;
-import com.meturum.centra.sessions.Session;
 import com.meturum.centre.commands.CommandTree;
 import com.meturum.centre.commands.exceptions.CommandArgumentException;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.List;
@@ -16,7 +12,6 @@ public final class CommandContext {
 
     private final CommandTree node;
     private final CommandSender sender;
-    private final @Nullable Player player;
     private final String[] arguments;
     private final HashMap<String, CommandArgument<?>> contextMap = new HashMap<>();
 
@@ -24,7 +19,6 @@ public final class CommandContext {
         this.node = node;
         this.sender = sender;
         this.arguments = arguments;
-        this.player = sender instanceof Player ? (Player) sender : null;
     }
 
     /**
