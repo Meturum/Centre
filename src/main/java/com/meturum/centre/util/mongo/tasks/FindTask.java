@@ -15,7 +15,7 @@ public class FindTask implements Runnable {
     Bson filter;
 
     @Nullable
-    CollectionWrapper.FindLambda lambda = null;
+    CollectionWrapper.FindLambda lambda;
 
     public FindTask(MongoCollection<Document> collection, Bson filter, @NotNull CollectionWrapper.FindLambda lambda) {
         this.collection = collection;

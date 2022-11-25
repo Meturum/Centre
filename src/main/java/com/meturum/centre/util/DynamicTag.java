@@ -3,11 +3,14 @@ package com.meturum.centre.util;
 import com.google.common.base.Preconditions;
 import com.meturum.centra.conversions.Documentable;
 import com.meturum.centra.conversions.IDynamicTag;
+import com.meturum.centra.conversions.annotations.DocumentableMethod;
 import com.meturum.centra.mongo.CollectionWrapper;
 import com.meturum.centra.mongo.Mongo;
+import com.meturum.centra.system.SystemManager;
 import com.meturum.centre.util.mongo.MongoImpl;
 import com.meturum.centre.util.mongo.CollectionWrapperImpl;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.result.InsertOneResult;
 import com.mongodb.client.result.UpdateResult;
 import org.bson.Document;
@@ -22,16 +25,60 @@ import java.util.UUID;
  */
 public abstract class DynamicTag implements IDynamicTag {
 
-    protected transient final @NotNull Mongo mongo;
+    protected transient final @NotNull MongoImpl mongo;
 
     protected @Serialize UUID uuid = UUID.randomUUID();
 
-    protected DynamicTag(@NotNull Mongo mongo) {
+    protected boolean isLoaded = false;
+
+    protected DynamicTag(@NotNull MongoImpl mongo) {
         this.mongo = mongo;
     }
 
     public @NotNull UUID getUniqueId() {
         return uuid;
+    }
+
+    protected boolean load(boolean async, @Nullable LoadLambda lambda) {
+        isLoaded = false;
+
+        final SystemManager manager = mongo.getSystemManager();
+        final CollectionWrapper collection = mongo.getCollection(getCollection(), Mongo.MongoClientTypes.GLOBAL_DATABASE);
+
+        if (!async) {
+            final Document document = collection.raw().find(Filters.eq("uuid", uuid.toString())).first();
+            if (document == null) return false; // No document found.
+
+            Documentable.insertDocument(manager, document, this);
+
+            isLoaded = true;
+            return true;
+        }
+
+        collection.findAsync(Filters.eq("uuid", uuid.toString()), (iterable, exception) -> {
+            final Document document = iterable.first();
+
+            boolean isLoaded = true;
+            if (exception != null || document == null) isLoaded = false;
+            else Documentable.insertDocument(manager, document, this);
+            this.isLoaded = isLoaded;
+
+            if (lambda != null) lambda.run(isLoaded);
+        });
+
+        return false;
+    }
+
+    protected void loadAsync(@Nullable LoadLambda lambda) {
+        load(true, lambda);
+    }
+
+    protected void loadAsync() {
+        loadAsync(null);
+    }
+
+    protected boolean loadSync() {
+        return load(false, null);
     }
 
     public boolean save(boolean async, @Nullable SaveLambda lambda, boolean upsert) {
@@ -56,8 +103,9 @@ public abstract class DynamicTag implements IDynamicTag {
                         else if(lambda != null) lambda.run(result.getModifiedCount() > 0);
                     }
             );
-        else
-            return collection.raw().replaceOne(Filters.eq("uuid", uuid.toString()), asDocument()).getModifiedCount() >= 1;
+        else {
+            boolean did = collection.raw().replaceOne(Filters.eq("uuid", uuid.toString()), asDocument(), new ReplaceOptions().upsert(upsert)).getModifiedCount() >= 1;
+        }
 
         return false;
     }
@@ -106,8 +154,12 @@ public abstract class DynamicTag implements IDynamicTag {
         saveAsync(null, false);
     }
 
+    public boolean isLoaded() {
+        return isLoaded;
+    }
+
     @Override
-    public Document asDocument() {
+    public @NotNull Document asDocument() {
         return Documentable.toDocument(this);
     }
 
@@ -116,6 +168,15 @@ public abstract class DynamicTag implements IDynamicTag {
      */
     protected String getCollection() {
         return this.getClass().getSimpleName()+"s".toLowerCase(); // Add the 's' to make it plural.
+    }
+
+    @Override
+    public @DocumentableMethod String serialize() {
+        return uuid.toString();
+    }
+
+    public interface LoadLambda {
+        void run(boolean isLoaded);
     }
 
 }

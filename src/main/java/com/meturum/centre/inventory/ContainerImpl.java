@@ -25,13 +25,13 @@ public class ContainerImpl extends ActionableImpl implements Container {
     private final LinkedList<Integer> slots = new LinkedList<>();
 
 
-    public ContainerImpl(@NotNull CustomInventoryImpl inventory, @NotNull List<Integer> slots) {
+    public ContainerImpl(@NotNull final CustomInventoryImpl inventory, @NotNull final List<Integer> slots) {
         this.customInventory = inventory;
         this.inventory = inventory.getTopInventory();
         this.slots.addAll(slots);
     }
 
-    public ContainerImpl(@NotNull CustomInventoryImpl inventory, int x, int y, int height, int width) {
+    public ContainerImpl(@NotNull final CustomInventoryImpl inventory, final int x, final int y, final int height, final int width) {
         if(x < 0 || x > (9 - width))
             throw new IllegalArgumentException("Invalid container dimensions, x must be between 0 and "+width);
 
@@ -59,7 +59,7 @@ public class ContainerImpl extends ActionableImpl implements Container {
     }
 
     @Override
-    public @Nullable ItemBuilder getItem(int slot) throws IllegalArgumentException {
+    public @Nullable ItemBuilder getItem(final int slot) throws IllegalArgumentException {
         if(!slots.contains(slot))
             throw new IllegalArgumentException("Slot " + slot + " is not part of this container.");
 
@@ -73,12 +73,12 @@ public class ContainerImpl extends ActionableImpl implements Container {
     }
 
     @Override
-    public @Nullable ItemBuilder getItem(@NotNull Position position) throws IllegalArgumentException {
+    public @Nullable ItemBuilder getItem(@NotNull final Position position) throws IllegalArgumentException {
         return getItem(position.toInt());
     }
 
     @Override
-    public boolean containsItem(@NotNull ItemBuilder item) {
+    public boolean containsItem(@NotNull final ItemBuilder item) {
         for(Map.Entry<Integer, ItemBuilder> entry : getContents().entrySet()) {
             if(entry.getValue().equals(item)) return true;
         }
@@ -87,16 +87,17 @@ public class ContainerImpl extends ActionableImpl implements Container {
     }
 
     @Override
-    public boolean containsItem(int slot) {
+    public boolean containsItem(final int slot) {
         return getItem(slot) != null;
     }
 
     @Override
-    public boolean containsItem(@NotNull Position position) {
+    public boolean containsItem(@NotNull final Position position) {
         return containsItem(position.toInt());
     }
 
-    public ContainerImpl setItem(@NotNull ItemBuilder item, @NotNull Position position) throws IllegalArgumentException {
+    @Override
+    public ContainerImpl setItem(@NotNull final ItemBuilder item, @NotNull final Position position) throws IllegalArgumentException {
         int posInt = position.toInt(); // the original position
 
         if(!slots.contains(posInt))
@@ -122,12 +123,12 @@ public class ContainerImpl extends ActionableImpl implements Container {
     }
 
     @Override
-    public ContainerImpl setItem(@NotNull ItemBuilder item, int slot) throws IllegalArgumentException {
+    public ContainerImpl setItem(@NotNull final ItemBuilder item, final int slot) throws IllegalArgumentException {
         return setItem(item, Position.of(slot));
     }
 
     @Override
-    public ContainerImpl addItem(@NotNull ItemBuilder item) throws IllegalArgumentException {
+    public ContainerImpl addItem(@NotNull final ItemBuilder item) throws IllegalArgumentException {
         int cursor = -1;
 
         for(int position : slots) {
@@ -144,7 +145,7 @@ public class ContainerImpl extends ActionableImpl implements Container {
     }
 
     @Override
-    public List<ItemBuilder> addItems(@NotNull ItemBuilder... items) {
+    public List<ItemBuilder> addItems(@NotNull final ItemBuilder... items) {
         List<ItemBuilder> leftovers = new LinkedList<>();
 
         for(ItemBuilder item : items) {
@@ -159,7 +160,7 @@ public class ContainerImpl extends ActionableImpl implements Container {
     }
 
     @Override
-    public ContainerImpl fill(@NotNull Material material) {
+    public ContainerImpl fill(@NotNull final Material material) {
         for (int slot : slots) {
             setItem(new ItemBuilder(material), slot);
         }
@@ -168,7 +169,7 @@ public class ContainerImpl extends ActionableImpl implements Container {
     }
 
     @Override
-    public void clear(int slot) {
+    public void clear(final int slot) {
         if(!slots.contains(slot))
             throw new IllegalArgumentException("Slot " + slot + " is not part of this container.");
 
@@ -184,7 +185,7 @@ public class ContainerImpl extends ActionableImpl implements Container {
     }
 
     @Override
-    public void clear(@NotNull Position position) {
+    public void clear(@NotNull final Position position) {
         clear(position.toInt());
     }
 
@@ -213,41 +214,43 @@ public class ContainerImpl extends ActionableImpl implements Container {
 
     // --- Only overriding these methods to change the return type.
 
-    public @NotNull ContainerImpl setAllowedActions(@NotNull InventoryAction... actions) {
-        super.setAllowedActions(actions);
-
-        return this;
-    }
-
-    public @NotNull ContainerImpl setAllowedActions(@NotNull GeneralAction... actions) {
+    @Override
+    public @NotNull ContainerImpl setAllowedActions(@NotNull final InventoryAction... actions) {
         super.setAllowedActions(actions);
 
         return this;
     }
 
     @Override
-    public ContainerImpl setAllowDragging(boolean allowDragging) {
+    public @NotNull ContainerImpl setAllowedActions(@NotNull final GeneralAction... actions) {
+        super.setAllowedActions(actions);
+
+        return this;
+    }
+
+    @Override
+    public ContainerImpl setAllowDragging(final boolean allowDragging) {
         super.setAllowDragging(allowDragging);
 
         return this;
     }
 
     @Override
-    public ContainerImpl interacts(@NotNull ActionLambda lambda) {
+    public ContainerImpl interacts(@NotNull final ActionLambda lambda) {
         super.interacts(lambda);
 
         return this;
     }
 
     @Override
-    public ContainerImpl interacts(@NotNull ActionLambda lambda, InventoryAction... applicableActions) {
+    public ContainerImpl interacts(@NotNull final ActionLambda lambda, @NotNull final InventoryAction... applicableActions) {
         super.interacts(lambda, applicableActions);
 
         return this;
     }
 
     @Override
-    public ContainerImpl interacts(@NotNull ActionLambda lambda, GeneralAction... applicableActions) {
+    public ContainerImpl interacts(@NotNull final ActionLambda lambda, @NotNull final GeneralAction... applicableActions) {
         super.interacts(lambda, applicableActions);
 
         return this;
@@ -255,7 +258,7 @@ public class ContainerImpl extends ActionableImpl implements Container {
 
     // --- End of overriding methods.
 
-    public static ContainerImpl of(@NotNull CustomInventoryImpl inventory, Integer... slots) {
+    public static ContainerImpl of(@NotNull final CustomInventoryImpl inventory, @NotNull final Integer... slots) {
         return new ContainerImpl(inventory, List.of(slots));
     }
 

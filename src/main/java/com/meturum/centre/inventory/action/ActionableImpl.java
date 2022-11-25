@@ -52,14 +52,14 @@ public abstract class ActionableImpl implements Actionable {
     }
 
     @Override
-    public Actionable interacts(@NotNull ActionLambda lambda) {
+    public Actionable interacts(@NotNull final ActionLambda lambda) {
         this.lambda = lambda;
 
         return this;
     }
 
     @Override
-    public Actionable interacts(@NotNull ActionLambda lambda, InventoryAction... applicableActions) {
+    public Actionable interacts(@NotNull final ActionLambda lambda, @NotNull final InventoryAction... applicableActions) {
         this.lambda = lambda;
         this.applicableActions = applicableActions;
 
@@ -67,7 +67,7 @@ public abstract class ActionableImpl implements Actionable {
     }
 
     @Override
-    public Actionable interacts(@NotNull ActionLambda lambda, GeneralAction... applicableActions) {
+    public Actionable interacts(@NotNull final ActionLambda lambda, @NotNull final GeneralAction... applicableActions) {
         this.lambda = lambda;
         this.applicableActions = Arrays.stream(applicableActions)
                 .flatMap(generalAction -> Arrays.stream(generalAction.getChildren()))
@@ -82,13 +82,13 @@ public abstract class ActionableImpl implements Actionable {
     }
 
     @Override
-    public ActionableImpl setAllowDragging(boolean allowDragging) {
+    public ActionableImpl setAllowDragging(final boolean allowDragging) {
         this.allowDragging = allowDragging;
 
         return this;
     }
 
-    public void reportInteraction(@NotNull ActionEventContextImpl context) {
+    public void reportInteraction(@NotNull final ActionEventContextImpl context) {
         if(lambda == null) return;
         if(Arrays.stream(applicableActions).noneMatch(a -> a.equals(context.getBukkitContext().getAction())) && applicableActions.length > 0) return;
 

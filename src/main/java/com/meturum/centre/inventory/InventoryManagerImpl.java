@@ -1,6 +1,5 @@
 package com.meturum.centre.inventory;
 
-import com.meturum.centra.inventory.CustomInventory;
 import com.meturum.centra.inventory.InventoryManager;
 import com.meturum.centra.inventory.actions.ActionEventContext;
 import com.meturum.centra.inventory.item.Position;
@@ -26,28 +25,35 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class InventoryManagerImpl extends SystemImpl implements InventoryManager {
+public final class InventoryManagerImpl extends SystemImpl implements InventoryManager {
 
     private final SessionFactoryImpl sessionFactory;
 
     private final List<CustomInventoryImpl> interfaces = new ArrayList<>();
 
-    public InventoryManagerImpl(@NotNull Centre centre, @NotNull SessionFactoryImpl sessionFactory) {
+    public InventoryManagerImpl(@NotNull final Centre centre, @NotNull final SessionFactoryImpl sessionFactory) {
         super(centre);
 
         this.sessionFactory = sessionFactory;
     }
 
-    public void register(@NotNull CustomInventoryImpl ui) {
+    @Override
+    protected void _stop() {
+        for (CustomInventoryImpl inventory : interfaces) {
+            inventory.destroy();
+        }
+    }
+
+    public void register(@NotNull final CustomInventoryImpl ui) {
         if(interfaces.contains(ui)) return;
         interfaces.add(ui);
     }
 
-    public CustomInventoryImpl search(@NotNull Inventory inventory) {
+    public CustomInventoryImpl search(@NotNull final Inventory inventory) {
         return interfaces.stream().filter(ui -> ui.getTopInventory().equals(inventory)).findFirst().orElse(null);
     }
 
-    public void unregister(@NotNull CustomInventoryImpl ui) {
+    public void unregister(@NotNull final CustomInventoryImpl ui) {
         if(!interfaces.contains(ui)) return;
 
         ui.getTopInventory().getViewers().forEach(HumanEntity::closeInventory);
@@ -55,13 +61,13 @@ public class InventoryManagerImpl extends SystemImpl implements InventoryManager
     }
 
     @EventHandler
-    public void onICE(InventoryClickEvent event) {
+    public void onICE(@NotNull final InventoryClickEvent event) {
         InventoryAction action = event.getAction();
         if (action == InventoryAction.NOTHING || action == InventoryAction.UNKNOWN)
             return; // These actions are useless.
 
-        Player player = (Player) event.getWhoClicked();
-        SessionImpl session = sessionFactory.search(player);
+        final Player player = (Player) event.getWhoClicked();
+        final SessionImpl session = sessionFactory.search(player);
         if (session == null) return;
 
         CustomInventoryImpl ui = search(event.getView().getTopInventory()); // Our cached inventory is only the top inventory.
@@ -76,14 +82,14 @@ public class InventoryManagerImpl extends SystemImpl implements InventoryManager
         // 2. If event.getCurrentItem() is null, then the item is not in the inventory. And it must be in the cursor.
         // 3. After verifying the item, it converts it to our ItemWrapper.
 
-        int abs_position = event.getView().convertSlot(event.getRawSlot());
-        boolean isTopInventory = event.getRawSlot() == abs_position;
+        final int abs_position = event.getView().convertSlot(event.getRawSlot());
+        final boolean isTopInventory = event.getRawSlot() == abs_position;
         if(!isTopInventory && ui.isMinimized())
             return; // If the inventory is not maximized, then we don't want to interfere with the player interacting with the bottom inventory.
 
-        ItemStack currentItemVerifier = event.getView().getItem(event.getRawSlot());
-        ItemStack currentItem = event.getCurrentItem();
-        ItemStack cursorItem = event.getCursor();
+        final ItemStack currentItemVerifier = event.getView().getItem(event.getRawSlot());
+        final ItemStack currentItem = event.getCurrentItem();
+        final ItemStack cursorItem = event.getCursor();
 
         ItemBuilder item = currentItemVerifier != null && !currentItemVerifier.getType().isAir()
                 ? currentItem != null && !currentItem.getType().isAir()
@@ -93,17 +99,17 @@ public class InventoryManagerImpl extends SystemImpl implements InventoryManager
                     ? new ItemBuilder(cursorItem)
                     : null;
 
-        ActionEventContextImpl context = new ActionEventContextImpl(ui, container, session, item, position, event);
-        boolean containerLevel;
+        final ActionEventContextImpl context = new ActionEventContextImpl(ui, container, session, item, position, event);
+        final boolean containerLevel;
 
         if (container != null) {
             container.reportInteraction(context);
             containerLevel = !container.isAllowedAction(action);
         } else containerLevel = true; // It's outside the container, so we don't want to allow any actions.
 
-        boolean userLevel = context.getResult().getValue();
-        boolean useUserLevel = context.getResult() != ActionEventContext.ActionResult.DEFAULT;
-        boolean itemLevel = item.isLocked();
+        final boolean userLevel = context.getResult().getValue();
+        final boolean useUserLevel = context.getResult() != ActionEventContext.ActionResult.DEFAULT;
+        final boolean itemLevel = item.isLocked();
 
         // If the user has a lambda, we want to rely on userLevel. Otherwise, if uiLevel or containerLevel is true, we want to cancel the event.
         // Even if the user attempts to allow the event, if itemLevel is true, we want to cancel the event.
@@ -111,12 +117,14 @@ public class InventoryManagerImpl extends SystemImpl implements InventoryManager
 
         if (!((useUserLevel ? userLevel : containerLevel) || itemLevel)) return;
 
-        ui.getViewerCursor(player).setCursor(item, container);
+        final CustomInventoryImpl.CustomInventoryViewImpl view = ui.getViewerCursor(player);
+        if(view != null) view.setCursor(item, container);
+
         event.setResult(InventoryClickEvent.Result.DENY);
     }
 
     @EventHandler
-    public void onIDE(InventoryDragEvent event) {
+    public void onIDE(@NotNull final InventoryDragEvent event) {
         CustomInventoryImpl ui = search(event.getView().getTopInventory());
         if (ui == null) return;
 
@@ -148,7 +156,7 @@ public class InventoryManagerImpl extends SystemImpl implements InventoryManager
     }
 
     @EventHandler
-    public void onICE(InventoryCloseEvent event) {
+    public void onICE(@NotNull final InventoryCloseEvent event) {
         Player player = (Player) event.getPlayer();
 
         CustomInventoryImpl ui = search(event.getInventory());
@@ -158,19 +166,20 @@ public class InventoryManagerImpl extends SystemImpl implements InventoryManager
     }
 
     @EventHandler
-    public void onPQE(PlayerQuitEvent event) {
+    public void onPQE(@NotNull final PlayerQuitEvent event) {
         Player player = event.getPlayer();
         interfaces.forEach(ui -> ui.close(player));
     }
 
     @Override
-    public @NotNull CustomInventory createInventory(int height) {
+    public @NotNull CustomInventoryImpl createInventory(final int height) {
         return new CustomInventoryImpl(height, this);
     }
 
     @Override
-    public @NotNull CustomInventory createInventory(@NotNull Inventory inventory) {
+    public @NotNull CustomInventoryImpl createInventory(@NotNull final Inventory inventory) {
         return new CustomInventoryImpl(inventory, this);
     }
+
 
 }

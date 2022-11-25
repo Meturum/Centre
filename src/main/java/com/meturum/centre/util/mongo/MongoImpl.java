@@ -14,19 +14,20 @@ import org.bson.Document;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nullable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class MongoImpl extends SystemImpl implements Mongo {
 
-    private MongoClient client;
+    private @Nullable MongoClient client;
 
     public MongoImpl(@NotNull Centre centre) {
         super(centre);
+    }
 
-        Logger logger = Logger.getLogger("org.mongodb.driver");
-        logger.setLevel(Level.SEVERE);
-
+    @Override
+    protected void _init() {
         ConnectionString uri = new ConnectionString("mongodb+srv://ijyrs:6CzcFqU7t8m9mvr@ijyrs.dhhdn.mongodb.net/?keepAlive=true&retryWrites=true&w=majority");
 
         try {
@@ -36,6 +37,13 @@ public final class MongoImpl extends SystemImpl implements Mongo {
             // Test the connection.
             gdb.runCommand(new BsonDocument("ping", new BsonInt64(1)));
         } catch (Exception ignored) { }
+    }
+
+    @Override
+    protected void _stop() {
+        client.close();
+
+        client = null;
     }
 
     /**

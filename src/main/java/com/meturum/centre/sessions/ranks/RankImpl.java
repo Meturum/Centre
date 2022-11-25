@@ -1,17 +1,14 @@
 package com.meturum.centre.sessions.ranks;
 
 import com.google.common.base.Preconditions;
-import com.meturum.centra.mongo.Mongo;
 import com.meturum.centra.sessions.Session;
 import com.meturum.centra.sessions.ranks.Rank;
 import com.meturum.centra.system.SystemManager;
 import com.meturum.centre.sessions.SessionImpl;
 import com.meturum.centra.ColorList;
-import com.meturum.centra.conversions.Documentable;
 import com.meturum.centre.util.DynamicTag;
 import com.meturum.centra.conversions.annotations.DocumentableMethod;
 import com.meturum.centre.util.mongo.MongoImpl;
-import com.mongodb.client.model.Filters;
 import org.apache.commons.lang3.StringUtils;
 import org.bson.Document;
 import org.bukkit.Bukkit;
@@ -24,16 +21,17 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.UUID;
 
-public class RankImpl extends DynamicTag implements Rank {
+public final class RankImpl extends DynamicTag implements Rank {
 
     private String name;
-    private @Serialize(method = SerializationMethod.STRING) ColorList color;
+    private @Serialize(method = SerializationMethod.METHOD) ColorList color;
     private List<String> permissions;
     private @NotNull String icon = "";
 
     private final Document properties = new Document();
 
-    protected RankImpl(@Nullable Mongo mongo) {
+    @DocumentableMethod
+    public RankImpl(@Nullable final MongoImpl mongo) {
         super(mongo);
     }
 
@@ -41,7 +39,7 @@ public class RankImpl extends DynamicTag implements Rank {
         return name;
     }
 
-    public void setName(@NotNull String name) {
+    public void setName(@NotNull final String name) {
         this.name = name.toLowerCase();
     }
 
@@ -49,23 +47,23 @@ public class RankImpl extends DynamicTag implements Rank {
         return color;
     }
 
-    public void setColor(@NotNull ColorList color) {
+    public void setColor(@NotNull final ColorList color) {
         this.color = color;
     }
 
-    public List<String> getPermissions() {
+    public @NotNull List<String> getPermissions() {
         return permissions;
     }
 
-    public void addPermission(@NotNull String permission) {
+    public void addPermission(@NotNull final String permission) {
         permissions.add(permission);
     }
 
-    public void removePermission(@NotNull String permission) {
+    public void removePermission(@NotNull final String permission) {
         permissions.remove(permission);
     }
 
-    public void setPermissions(@NotNull List<String> permissions) {
+    public void setPermissions(@NotNull final List<String> permissions) {
         this.permissions = permissions;
     }
 
@@ -81,27 +79,29 @@ public class RankImpl extends DynamicTag implements Rank {
         getTeam().setPrefix(hasIcon() ? ChatColor.WHITE + getIcon() + "\uF823" : "" + ChatColor.RESET);
     }
 
-    public void setIcon(@NotNull String icon) {
+    public void setIcon(@NotNull final String icon) {
         this.icon = icon;
         patchIcon();
     }
 
-    public <T> T getProperty(@NotNull String key) {
+    public <T> T getProperty(@NotNull final String key) {
         return (T) properties.get(key);
     }
 
-    public void setProperty(@NotNull String key, @NotNull Object value) {
+    public void setProperty(@NotNull final String key, @NotNull final Object value) {
         properties.put(key, value);
     }
 
-    public void registerToTeam(@NotNull SessionImpl session) {
+    public void registerToTeam(@NotNull final SessionImpl session) {
         if(!session.getRank().equals(this)) return;
 
-        if(!getTeam().hasEntry(session.getName()))
-            getTeam().addEntry(session.getName());
+        Team team = getScoreboard().getEntryTeam(session.getName()); // Get the team the player is in.
+        if(team != null) team.removeEntry(session.getName()); // Remove the player from the team.
+
+        getTeam().addEntry(session.getName()); // Add the player to the team.
     }
 
-    private Team getTeam() {
+    private @NotNull Team getTeam() {
         Team team = getScoreboard().getTeam(getName());
 
         if (team == null) {
@@ -116,7 +116,7 @@ public class RankImpl extends DynamicTag implements Rank {
         return Bukkit.getScoreboardManager().getMainScoreboard();
     }
 
-    public @Nullable String getFormattedString(Session session, FormatType type){
+    public @Nullable String getFormattedString(@NotNull final Session session, @NotNull final FormatType type){
         return switch (type) {
             case CHAT -> ChatColor.WHITE + (hasIcon() ? getIcon() : getColor() + "" + ChatColor.BOLD +getName().toUpperCase() + ChatColor.RESET) + "\uF823" + getColor() + session.getName() + ChatColor.RESET + ": " + Rank.brighten(getColor().v.getColor());
             case DISPLAY_NAME -> ChatColor.WHITE + (hasIcon() ? getIcon() : getColor() + "" + ChatColor.BOLD +getName().toUpperCase() + ChatColor.RESET) + getColor() + session.getName() + ChatColor.RESET;
@@ -133,27 +133,11 @@ public class RankImpl extends DynamicTag implements Rank {
     }
 
     @DocumentableMethod
-    private static Rank _fromReference(@NotNull SystemManager manager, @NotNull UUID value) {
+    private static Rank deserialize(@NotNull final SystemManager manager, @NotNull final Object value) {
         RankFactoryImpl factory = manager.search(RankFactoryImpl.class);
         Preconditions.checkArgument(factory != null, "System (RankFactory) cannot be null nor inactive.");
 
-        return factory.search(value);
-    }
-
-    public static RankImpl of(@NotNull MongoImpl mongo, @NotNull String name) {
-        Preconditions.checkNotNull(mongo, "System (Mongo) cannot be null nor inactive.");
-
-        Document document = mongo.getCollection("ranks", Mongo.MongoClientTypes.GLOBAL_DATABASE).raw().find(Filters.eq("name", name.toLowerCase())).first();
-        if(document == null) return null;
-
-        RankImpl rank = new RankImpl(mongo);
-        Documentable.insertDocument(mongo.getSystemManager(), document, rank);
-
-        return rank;
-    }
-
-    public static RankImpl of(@NotNull MongoImpl mongo, @NotNull Document document) throws Exception {
-        return Documentable.fromDocument(mongo.getSystemManager(), document, RankImpl.class);
+        return factory.search(UUID.fromString((String) value));
     }
 
     public enum FormatType {

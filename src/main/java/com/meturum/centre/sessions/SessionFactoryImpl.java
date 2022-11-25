@@ -19,29 +19,36 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class SessionFactoryImpl extends SystemImpl implements SessionFactory {
+public final class SessionFactoryImpl extends SystemImpl implements SessionFactory {
 
     private final MongoImpl mongo;
 
     private final List<SessionImpl> sessionsList = new ArrayList<>();
 
-    public SessionFactoryImpl(@NotNull Centre centre, @NotNull MongoImpl mongo) {
+    public SessionFactoryImpl(@NotNull final Centre centre, @NotNull final MongoImpl mongo) {
         super(centre);
 
         this.mongo = mongo;
     }
 
-    public @NotNull SessionImpl open(@NotNull Player player) {
+    @Override
+    protected void _stop() {
+        for(SessionImpl session : List.copyOf(sessionsList)) {
+            close(session, false);
+        }
+    }
+
+    public @NotNull SessionImpl open(@NotNull final Player player) {
         if(contains(player))
             return search(player);
 
         SystemManager manager = centre.getSystemManager();
-        SessionImpl session = new SessionImpl(player, mongo, manager.search(RankFactoryImpl.class), centre);
+        SessionImpl session = new SessionImpl(player, mongo, manager.search(RankFactoryImpl.class).getDefaultRank(), centre);
         sessionsList.add(session);
         return session;
     }
 
-    public @Nullable SessionImpl search(@NotNull UUID uuid) {
+    public @Nullable SessionImpl search(@NotNull final UUID uuid) {
         for (SessionImpl session : sessionsList) {
             if(session.getPlayer().getUniqueId().equals(uuid))
                 return session;
@@ -50,47 +57,47 @@ public class SessionFactoryImpl extends SystemImpl implements SessionFactory {
         return null;
     }
 
-    public @Nullable SessionImpl search(@NotNull Player player) {
+    public @Nullable SessionImpl search(@NotNull final Player player) {
         return search(player.getUniqueId());
     }
 
-    public boolean contains(@NotNull UUID uuid) {
+    public boolean contains(@NotNull final UUID uuid) {
         return search(uuid) != null;
     }
 
-    public boolean contains(@NotNull Player player) {
+    public boolean contains(@NotNull final Player player) {
         return contains(player.getUniqueId());
     }
 
-    public boolean contains(@NotNull Session session) {
+    public boolean contains(@NotNull final Session session) {
         return contains(session.getPlayer().getUniqueId());
     }
 
-    public boolean close(@NotNull Session session, boolean async) {
+    public boolean close(@NotNull final Session session, final boolean async) {
         if(!contains(session))
             return false;
 
-        if(async) ((SessionImpl) session).saveAsync(); else ((SessionImpl) session).saveSync();
+        if(async) session.saveAsync(true); else session.saveSync(true);
         if(session.getPlayer().isOnline())
             session.getPlayer().kickPlayer(ColorList.RED+"Unable to verify your session. Please rejoin the server. (Error: SFI-cSa)");
 
-        sessionsList.remove(session);
+        sessionsList.remove((SessionImpl) session);
 
         return true;
     }
 
-    public boolean close(@NotNull Session session) {
+    public boolean close(@NotNull final Session session) {
         return close(session, true);
     }
 
     @EventHandler
-    public void onPJE(PlayerJoinEvent event) {
+    public void onPJE(@NotNull final PlayerJoinEvent event) {
         open(event.getPlayer());
         event.setJoinMessage("");
     }
 
     @EventHandler
-    public void onPQE(PlayerQuitEvent event) {
+    public void onPQE(@NotNull final PlayerQuitEvent event) {
         close(search(event.getPlayer()));
         event.setQuitMessage("");
     }

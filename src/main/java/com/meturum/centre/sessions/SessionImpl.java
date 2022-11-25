@@ -1,72 +1,56 @@
 package com.meturum.centre.sessions;
 
-import com.meturum.centra.mongo.Mongo;
 import com.meturum.centra.sessions.GameProfile;
 import com.meturum.centra.sessions.Session;
 import com.meturum.centra.sessions.events.ProfileSwitchEvent;
 import com.meturum.centra.sessions.ranks.Rank;
+import com.meturum.centre.Centre;
 import com.meturum.centre.sessions.profiles.GameProfileImpl;
-import com.meturum.centre.sessions.ranks.RankFactoryImpl;
 import com.meturum.centre.sessions.ranks.RankImpl;
-import com.meturum.centra.conversions.Documentable;
 import com.meturum.centre.util.DynamicTag;
+import com.meturum.centre.util.input.SignTextInputImpl;
 import com.meturum.centre.util.mongo.MongoImpl;
-import com.mongodb.client.model.Filters;
 import org.bson.Document;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
-
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 public class SessionImpl extends DynamicTag implements Session {
 
     private transient final Plugin plugin;
-    private transient final RankFactoryImpl rankFactory;
 
     private transient final Player player;
 
     private Document settings = new Document();
 
-    private @Serialize(method = SerializationMethod.REFERENCE) RankImpl rank;
+    @Serialize(method = SerializationMethod.METHOD)
+    private RankImpl rank;
 
-    private transient GameProfile[] profiles = new GameProfile[0];
+    @Serialize(method = SerializationMethod.METHOD, type = GameProfileImpl.class, save = true)
+    private GameProfileImpl[] profiles = new GameProfileImpl[0];
 
-    private transient int profile = 0;
+    private transient int currentProfile = 0;
 
-    public SessionImpl(@NotNull Player player, @NotNull Mongo mongo, @NotNull RankFactoryImpl rankFactory, @NotNull Plugin plugin) {
+    private transient @Nullable SignTextInputImpl textInput;
+
+    public SessionImpl(@NotNull final Player player, @NotNull final MongoImpl mongo, @NotNull final RankImpl defaultRank, @NotNull final Plugin plugin) {
         super(mongo);
 
-        mongo.getCollection(getCollection(), Mongo.MongoClientTypes.GLOBAL_DATABASE)
-                .findAsync(Filters.eq("uuid", player.getUniqueId().toString()), (iterable, exception) -> {
-                    Document document = iterable.first();
-
-                    if (exception != null) return;
-                    if (document == null) return;
-
-                    Documentable.insertDocument(((MongoImpl) mongo).getSystemManager(), document, this);
-
-                    getRank();
-
-                    if(document.containsKey("profiles")) {
-                        List<String> profilesUuids = document.get("profiles", List.class);
-
-                        for (String uuid : profilesUuids) {
-                            addProfile(GameProfileImpl.of(UUID.fromString(uuid), mongo));
-                        }
-                    }
-
-                    if(profiles.length != 0) return;
-                    addProfile(new GameProfileImpl(GameProfileImpl.CommonNicknames.KIWI, mongo));
-                });
-
+        this.uuid = player.getUniqueId();
         this.player = player;
-        this.rankFactory = rankFactory;
+        this.rank = defaultRank;
         this.plugin = plugin;
+
+        addProfile(new GameProfileImpl(GameProfileImpl.CommonNicknames.KIWI, mongo)); // Default Profile...
+
+        load(true, (isLoaded) -> {
+            if(!isLoaded) Centre.printMessage("Unable to load session data for, "+getName()+". Using default data...");
+            else Centre.printMessage("Successfully loaded session data for, "+getName()+". (MongoDB)");
+        });
     }
 
     @Override
@@ -85,16 +69,11 @@ public class SessionImpl extends DynamicTag implements Session {
 
     @Override
     public @NotNull Rank getRank() {
-        if(rank == null) setRank(null);
         return rank;
     }
 
     @Override
-    public void setRank(@Nullable Rank newRank) throws IllegalArgumentException {
-        if(newRank == null) {
-            newRank = rankFactory.search("player");
-        }
-
+    public void setRank(@NotNull final Rank newRank) throws IllegalArgumentException {
         if(this.rank != null) {
             for (String permission : this.rank.getPermissions()) {
                 getPlayer().addAttachment(plugin, permission, false);
@@ -111,17 +90,17 @@ public class SessionImpl extends DynamicTag implements Session {
         }
     }
 
-    public @NotNull GameProfile[] getProfiles() {
-        GameProfile[] profiles = new GameProfile[this.profiles.length];
+    public @NotNull GameProfileImpl[] getProfiles() {
+        GameProfileImpl[] profiles = new GameProfileImpl[this.profiles.length];
         System.arraycopy(this.profiles, 0, profiles, 0, this.profiles.length);
         return profiles;
     }
 
-    public @NotNull GameProfile getCurrentProfile() {
-        return Objects.requireNonNull(getProfile(profile));
+    public @NotNull GameProfileImpl getCurrentProfile() {
+        return Objects.requireNonNull(getProfile(currentProfile));
     }
 
-    public void setCurrentProfile(int index) throws IllegalArgumentException {
+    public void setCurrentProfile(final int index) throws IllegalArgumentException {
         if(getProfile(index) == null)
             throw new IllegalArgumentException("Unable to set profile, a profile at specified index does not exist.");
 
@@ -130,10 +109,10 @@ public class SessionImpl extends DynamicTag implements Session {
 
         if(event.isCancelled()) return;
 
-        profile = index;
+        currentProfile = index;
     }
 
-    public @Nullable GameProfile getProfile(int index) {
+    public @Nullable GameProfileImpl getProfile(final int index) {
         try {
             return profiles[index];
         } catch (IndexOutOfBoundsException e) {
@@ -142,23 +121,23 @@ public class SessionImpl extends DynamicTag implements Session {
     }
 
     @Override
-    public @Nullable GameProfile getProfile(@NotNull String nickname) {
-        for (GameProfile profile : profiles) {
+    public @Nullable GameProfileImpl getProfile(@NotNull final String nickname) {
+        for (GameProfileImpl profile : profiles) {
             if(profile.getNickname().equalsIgnoreCase(nickname)) return profile;
         }
 
         return null;
     }
 
-    public @Nullable GameProfile getProfile(@NotNull UUID uuid) {
-        for (GameProfile profile : profiles) {
+    public @Nullable GameProfileImpl getProfile(@NotNull final UUID uuid) {
+        for (GameProfileImpl profile : profiles) {
             if(profile.getUniqueId().equals(uuid)) return profile;
         }
 
         return null;
     }
 
-    public boolean addProfile(@NotNull GameProfile profile) {
+    public boolean addProfile(@NotNull final GameProfile profile) {
         final int PROFILE_MAXIMUM = 7;
         final int PROFILE_MINIMUM = 3;
 
@@ -169,19 +148,19 @@ public class SessionImpl extends DynamicTag implements Session {
         if(profiles.length >= limit || profiles.length >= PROFILE_MAXIMUM) return false;
 
         // Add profile to array.
-        GameProfile[] profiles = new GameProfile[this.profiles.length + 1];
+        GameProfileImpl[] profiles = new GameProfileImpl[this.profiles.length + 1];
         java.lang.System.arraycopy(profiles, 0, profiles, 0, this.profiles.length);
-        profiles[this.profiles.length] = profile;
+        profiles[this.profiles.length] = (GameProfileImpl) profile;
 
         this.profiles = profiles;
         return true;
     }
 
-    public boolean removeProfile(int index) {
+    public boolean removeProfile(final int index) {
         if(index < 0 || index >= profiles.length) return false; // Index out of bounds.
-        if(index == profile) return false; // Cannot remove current profile.
+        if(index == currentProfile) return false; // Cannot remove current profile.
 
-        GameProfile[] profiles = new GameProfile[this.profiles.length - 1];
+        GameProfileImpl[] profiles = new GameProfileImpl[this.profiles.length - 1];
 
         for (int i = 0; i < profiles.length; i++) {
             if(i == index) continue;
@@ -192,7 +171,7 @@ public class SessionImpl extends DynamicTag implements Session {
         return true;
     }
 
-    public boolean removeProfile(@NotNull GameProfile profile) {
+    public boolean removeProfile(@NotNull final GameProfile profile) {
         for (int i = 0; i < profiles.length; i++) {
             if(profiles[i].equals(profile)) return removeProfile(i);
         }
@@ -200,24 +179,29 @@ public class SessionImpl extends DynamicTag implements Session {
         return false;
     }
 
-    public void sendMessage(@NotNull String message) {
+    public void sendMessage(@NotNull final String message) {
         getPlayer().sendMessage(message);
     }
 
-    public void kick(@NotNull String reason) {
+    public @Nullable SignTextInputImpl getTextInput() {
+        return textInput;
+    }
+
+    public void setTextInput(@Nullable final SignTextInputImpl textInput) {
+        this.textInput = textInput;
+    }
+
+    public @Nullable SignTextInputImpl createTextInput() {
+        return new SignTextInputImpl(this); // Create a new text input.
+    }
+
+    public void kick(@NotNull final String reason) {
         getPlayer().kickPlayer(reason);
     }
 
     @Override
     protected String getCollection() {
         return "users";
-    }
-
-    public static SessionImpl of(@NotNull Player player, @NotNull Document document, @NotNull MongoImpl mongo, @NotNull RankFactoryImpl rankFactory, @NotNull Plugin plugin) {
-        SessionImpl session = new SessionImpl(player, mongo, rankFactory, plugin);
-        Documentable.insertDocument(mongo.getSystemManager(), document, session);
-
-        return session;
     }
 
 }

@@ -21,7 +21,7 @@ public class ActionEventContextImpl implements ActionEventContext {
     private final InventoryClickEvent bukkit_context;
     private ActionResult result = ActionResult.DEFAULT;
 
-    public ActionEventContextImpl(@NotNull CustomInventoryImpl inventory, @Nullable ContainerImpl container, @NotNull SessionImpl player, @Nullable ItemBuilder currentItem, @NotNull Position position, @NotNull InventoryClickEvent bukkit_context) {
+    public ActionEventContextImpl(@NotNull final CustomInventoryImpl inventory, @Nullable final ContainerImpl container, @NotNull final SessionImpl player, @Nullable final ItemBuilder currentItem, @NotNull final Position position, @NotNull final InventoryClickEvent bukkit_context) {
         this.inventory = inventory;
         this.container = container;
         this.player = player;
@@ -59,7 +59,7 @@ public class ActionEventContextImpl implements ActionEventContext {
     }
 
     @Override
-    public void setResult(@NotNull ActionResult result) {
+    public void setResult(@NotNull final ActionResult result) {
         this.result = result;
     }
 
@@ -69,7 +69,7 @@ public class ActionEventContextImpl implements ActionEventContext {
     }
 
     @Override
-    public void setCancelled(boolean cancel) {
+    public void setCancelled(final boolean cancel) {
         setResult(cancel ? ActionResult.DENY : ActionResult.ALLOW);
     }
 

@@ -5,11 +5,23 @@ import com.meturum.centra.system.SystemManager;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-public class SystemFactory implements SystemManager {
+public final class SystemFactory implements SystemManager {
 
     private final List<SystemImpl> systems = new ArrayList<>();
+
+    public void start() {
+        systems.forEach(SystemImpl::init);
+    }
+
+    public void stop() {
+        List<SystemImpl> systemList = new ArrayList<>(systems);
+        Collections.reverse(systemList); // Stop in reverse order, so that dependencies are stopped first
+
+        systemList.forEach(SystemImpl::stop);
+    }
 
     public <T extends System> T register(SystemImpl system) throws IllegalArgumentException {
         if(contains(system.getClass()))
@@ -21,7 +33,7 @@ public class SystemFactory implements SystemManager {
         return (T) system;
     }
 
-    public void registerAll(SystemImpl... systems) throws IllegalArgumentException{
+    public void registerAll(SystemImpl... systems) throws IllegalArgumentException {
         for (SystemImpl system : systems) {
             register(system);
         }

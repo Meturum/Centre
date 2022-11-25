@@ -40,7 +40,7 @@ public class CustomInventoryImpl implements CustomInventory {
 
     private boolean usePlayerInventory = false;
 
-    public CustomInventoryImpl(@NotNull Inventory topInventory, @Nullable Inventory bottomInventory, @NotNull InventoryManagerImpl manager) {
+    public CustomInventoryImpl(@NotNull final Inventory topInventory, @Nullable final Inventory bottomInventory, @NotNull final InventoryManagerImpl manager) {
         this.topInventory = topInventory;
         this.manager = manager;
 
@@ -54,11 +54,11 @@ public class CustomInventoryImpl implements CustomInventory {
         manager.register(this);
     }
 
-    public CustomInventoryImpl(@NotNull Inventory topInventory, @NotNull InventoryManagerImpl manager) {
+    public CustomInventoryImpl(@NotNull final Inventory topInventory, @NotNull final InventoryManagerImpl manager) {
         this(topInventory, null, manager);
     }
 
-    public CustomInventoryImpl(int height, @NotNull InventoryManagerImpl manager) {
+    public CustomInventoryImpl(final int height, @NotNull final InventoryManagerImpl manager) {
         this(Bukkit.createInventory(null, height * 9, "Interface"), null, manager);
 
         if(height < MINIMUM_HEIGHT || height > MAXIMUM_HEIGHT)
@@ -69,7 +69,7 @@ public class CustomInventoryImpl implements CustomInventory {
         return topInventory;
     }
 
-    public @Nullable Inventory getSourceInventory(int position) {
+    public @Nullable Inventory getSourceInventory(final int position) {
         int truePosition = convertPosition(position);
 
         Inventory inventory = getTopInventory();
@@ -88,7 +88,7 @@ public class CustomInventoryImpl implements CustomInventory {
     }
 
     @Override
-    public ContainerImpl getContainer(int position) {
+    public ContainerImpl getContainer(final int position) {
         for(ContainerImpl container : containers) {
             for(Integer slots : container.getContents().keySet()) {
                 if(slots == position) return container;
@@ -99,11 +99,11 @@ public class CustomInventoryImpl implements CustomInventory {
     }
 
     @Override
-    public ContainerImpl getContainer(@NotNull Position position) {
+    public ContainerImpl getContainer(@NotNull final Position position) {
         return getContainer(position.toInt());
     }
 
-    public CustomInventoryImpl addContainer(@NotNull ContainerImpl container) throws IllegalArgumentException {
+    public CustomInventoryImpl addContainer(@NotNull final ContainerImpl container) throws IllegalArgumentException {
         // Make sure we don't have this container already
         if(containsContainer(container))
             throw new IllegalArgumentException("Unable to add container, the interface already contains the container.");
@@ -128,12 +128,12 @@ public class CustomInventoryImpl implements CustomInventory {
     }
 
     @Override
-    public boolean containsContainer(@NotNull Container container) {
+    public boolean containsContainer(@NotNull final Container container) {
         return containers.contains((ContainerImpl) container);
     }
 
     @Override
-    public boolean removeContainer(@NotNull Container container) {
+    public boolean removeContainer(@NotNull final Container container) {
         if(!containsContainer(container))
             return false;
 
@@ -152,12 +152,12 @@ public class CustomInventoryImpl implements CustomInventory {
     }
 
     @Override
-    public boolean contains(@NotNull ItemStack item) {
+    public boolean contains(@NotNull final ItemStack item) {
         return topInventory.contains(item);
     }
 
     @Override
-    public boolean isEmpty(int position) {
+    public boolean isEmpty(final int position) {
         return topInventory.getItem(position) != null;
     }
 
@@ -172,8 +172,8 @@ public class CustomInventoryImpl implements CustomInventory {
     }
 
     @Override
-    public CustomInventoryImpl setTitle(@Nullable String title) {
-        if(title == null) title = "Interface@"+hashCode();
+    public CustomInventoryImpl setTitle(@Nullable final String title) {
+        if(title == null) return setTitle("Interface@"+hashCode()); // Default the title.
         this.title = title;
 
         update();
@@ -191,7 +191,7 @@ public class CustomInventoryImpl implements CustomInventory {
     }
 
     @Override
-    public CustomInventoryImpl setOverlay(@Nullable String overlay) {
+    public CustomInventoryImpl setOverlay(@Nullable final String overlay) {
         this.overlay = overlay;
 
         update();
@@ -204,7 +204,7 @@ public class CustomInventoryImpl implements CustomInventory {
     }
 
     @Override
-    public boolean isViewing(@NotNull Player player) {
+    public boolean isViewing(@NotNull final Player player) {
         for(CustomInventoryView cursor : viewers) {
             if(cursor.getOwner().getUniqueId().equals(player.getUniqueId())) return true;
         }
@@ -213,7 +213,7 @@ public class CustomInventoryImpl implements CustomInventory {
     }
 
     @Override
-    public CustomInventoryImpl view(@NotNull Player player, boolean force) throws IllegalStateException {
+    public CustomInventoryImpl view(@NotNull final Player player, final boolean force) throws IllegalStateException {
         if (player.getPlayer().getOpenInventory().getType().equals(InventoryType.PLAYER))
             if (force) player.getPlayer().closeInventory();
             else throw new IllegalStateException("Unable to open interface, the player is already viewing an inventory.");
@@ -234,11 +234,11 @@ public class CustomInventoryImpl implements CustomInventory {
     }
 
     @Override
-    public CustomInventoryImpl view(@NotNull Player player) throws IllegalStateException {
+    public CustomInventoryImpl view(@NotNull final Player player) throws IllegalStateException {
         return view(player, false);
     }
 
-    public void close(@NotNull Player player, boolean force) {
+    public void close(@NotNull final Player player, final boolean force) {
         if(!isViewing(player)) return;
 
         CustomInventoryViewImpl view = getViewerCursor(player);
@@ -252,11 +252,11 @@ public class CustomInventoryImpl implements CustomInventory {
     }
 
     @Override
-    public void close(@NotNull Player player) {
+    public void close(@NotNull final Player player) {
         close(player, true);
     }
 
-    public CustomInventoryViewImpl getViewerCursor(@NotNull Player player) {
+    public CustomInventoryViewImpl getViewerCursor(@NotNull final Player player) {
         for(CustomInventoryViewImpl cursor : viewers) {
             if(cursor.getOwner().getUniqueId().equals(player.getUniqueId())) return cursor;
         }
@@ -313,7 +313,7 @@ public class CustomInventoryImpl implements CustomInventory {
         return !usePlayerInventory;
     }
 
-    public int convertPosition(int index) {
+    public int convertPosition(final int index) {
         int numInTop = topInventory.getSize();
 
         if (index < numInTop) {
@@ -336,7 +336,7 @@ public class CustomInventoryImpl implements CustomInventory {
     }
 
     @Override
-    public @NotNull ContainerImpl createContainer(@NotNull List<Integer> slots) throws IllegalArgumentException {
+    public @NotNull ContainerImpl createContainer(@NotNull final List<Integer> slots) throws IllegalArgumentException {
         ContainerImpl container = new ContainerImpl(this, slots);
         addContainer(container);
 
@@ -344,7 +344,7 @@ public class CustomInventoryImpl implements CustomInventory {
     }
 
     @Override
-    public @NotNull ContainerImpl createContainer(int x, int y, int height, int width) throws IllegalArgumentException {
+    public @NotNull ContainerImpl createContainer(final int x, final int y, final int height, final int width) throws IllegalArgumentException {
         ContainerImpl container = new ContainerImpl(this, x, y, height, width);
         addContainer(container);
 
@@ -352,11 +352,11 @@ public class CustomInventoryImpl implements CustomInventory {
     }
 
     @Override
-    public @NotNull ContainerImpl createContainer(int x, int y, int height) throws IllegalArgumentException {
+    public @NotNull ContainerImpl createContainer(final int x, final int y, final int height) throws IllegalArgumentException {
         return createContainer(x, y, height, 9);
     }
 
-    public void reportInteraction(@NotNull ActionEventContextImpl context) {
+    public void reportInteraction(@NotNull final ActionEventContextImpl context) {
         ContainerImpl container = context.getContainer();
         if(container != null) container.reportInteraction(context);
     }
@@ -389,7 +389,7 @@ public class CustomInventoryImpl implements CustomInventory {
 
     @Override
     public void destroy() {
-        for (CustomInventoryView cursor : viewers) {
+        for (CustomInventoryView cursor : getViewerCursors()) {
             close(cursor.getOwner());
         }
 
@@ -405,7 +405,7 @@ public class CustomInventoryImpl implements CustomInventory {
 
         private @Nullable ItemStack[] bottomContents;
 
-        public CustomInventoryViewImpl(@NotNull CustomInventoryImpl inventory, @NotNull Player owner) {
+        public CustomInventoryViewImpl(@NotNull final CustomInventoryImpl inventory, final @NotNull Player owner) {
             this.owner = owner;
             this.inventory = inventory;
         }
@@ -430,7 +430,7 @@ public class CustomInventoryImpl implements CustomInventory {
             return container;
         }
 
-        public void setCursor(@Nullable ItemBuilder cursor, @Nullable Container container) {
+        public void setCursor(@Nullable final ItemBuilder cursor, @Nullable final Container container) {
             this.cursor = cursor;
             this.container = container;
         }
@@ -440,7 +440,7 @@ public class CustomInventoryImpl implements CustomInventory {
             return bottomContents;
         }
 
-        private void setBottomContents(@Nullable ItemStack[] bottomContents) {
+        private void setBottomContents(@Nullable final ItemStack[] bottomContents) {
             this.bottomContents = bottomContents;
         }
 
